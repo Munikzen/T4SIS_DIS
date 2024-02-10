@@ -1,0 +1,19 @@
+195254.localhost.localdomain!tmadmin.6893.1209778624.-2: 02-10-2024: client high water (), total client ()              
+195254.localhost.localdomain!tmadmin.6893.1209778624.-2: 02-10-2024: Tuxedo Version 12.2.2.0.0, 64-bit
+195254.localhost.localdomain!tmadmin.6893.1209778624.-2: LIBTUX_CAT:334: ERROR: No BBL
+195254.localhost.localdomain!tmadmin.6893.1209778624.-2: LIBTUX_CAT:334: ERROR: No BBL
+204819.localhost.localdomain!tmshutdown.11399.1376219584.-2: 02-10-2024: Tuxedo Version 12.2.2.0.0, 64-bit
+204819.localhost.localdomain!tmshutdown.11399.1376219584.-2: LIBTUX_CAT:334: ERROR: No BBL
+204819.localhost.localdomain!tmshutdown.11399.1376219584.-2: FATAL: internal error: CMDTUX_CAT:764: ERROR: can't attach to BB
+204821.localhost.localdomain!tmshutdown.11408.2590450112.-2: 02-10-2024: Tuxedo Version 12.2.2.0.0, 64-bit
+204821.localhost.localdomain!tmshutdown.11408.2590450112.-2: LIBTUX_CAT:334: ERROR: No BBL
+204821.localhost.localdomain!tmshutdown.11408.2590450112.-2: FATAL: internal error: CMDTUX_CAT:764: ERROR: can't attach to BB
+210754.localhost.localdomain!tmshutdown.13078.3855049152.-2: 02-10-2024: Tuxedo Version 12.2.2.0.0, 64-bit
+210754.localhost.localdomain!tmshutdown.13078.3855049152.-2: LIBTUX_CAT:334: ERROR: No BBL
+210754.localhost.localdomain!tmshutdown.13078.3855049152.-2: FATAL: internal error: CMDTUX_CAT:764: ERROR: can't attach to BB
+224008.localhost.localdomain!tmshutdown.20274.2577289664.-2: 02-10-2024: Tuxedo Version 12.2.2.0.0, 64-bit
+224008.localhost.localdomain!tmshutdown.20274.2577289664.-2: LIBTUX_CAT:334: ERROR: No BBL
+224008.localhost.localdomain!tmshutdown.20274.2577289664.-2: FATAL: internal error: CMDTUX_CAT:764: ERROR: can't attach to BB
+224250.localhost.localdomain!tmshutdown.20556.4154900928.-2: 02-10-2024: Tuxedo Version 12.2.2.0.0, 64-bit
+224250.localhost.localdomain!tmshutdown.20556.4154900928.-2: LIBTUX_CAT:334: ERROR: No BBL
+224250.localhost.localdomain!tmshutdown.20556.4154900928.-2: FATAL: internal error: CMDTUX_CAT:764: ERROR: can't attach to BB

@@ -1,0 +1,15 @@
+# name          number  type    flag    comment
+#
+OUTPUT          5       string  -   -
+IDDIR      	10      long    -   - Id del director
+NOMBREDIR	20      string  -   - Nombre del director
+NACIONALIDAD	30      string  -   - Nacionalidad del director
+ESTUDIODIR	40      string  -   - Estudio del director
+IDPELI	        50      long    -   - Id de la pelicula
+IDEST		60      long    -   - Id del estudio
+GENEROPELI	70	string	-   - Genero de la pelicula
+NOMBREACT	80	string	-   - Nombre del actor
+NOMBREPELI	90	string	-   - Nombre de la pelicula
+DIRECTORPELI	100	string	-   - Director de la pelicula
+IDACT		110	string	-   - Id del Actor
+ESTUDIOACT	120	string	-   - Estudio del actor

@@ -1,0 +1,393 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <atmi.h>
+#include <userlog.h>
+#include <fml32.h>
+#include <tx.h>
+#include "biblioBD.fml.h"
+#include <sqlca.h>
+#include <sqlda.h>
+#include <oraca.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+EXEC SQL BEGIN DECLARE SECTION;
+EXEC SQL DECLARE BRANDONDB DATABASE;
+EXEC SQL END DECLARE SECTION;
+
+typedef struct paramConexion
+{
+   char usuario_DB[50];
+   char password_DB[50];
+   char name_DB[50];
+}paramConexion;
+
+char *ajustaCampos(char zaA_Campo[2000]);
+
+int     ivG_errorCon = -1;
+int     ivG_errorSel = -2;
+int     ivG_salidaOK = 0;
+
+void sqlError(const char *zpA_cadError)
+{
+   char zaL_errorOra[512];
+   long unsigned int  ivL_longCadn;
+   long unsigned int  ivL_longMens;
+
+   sqlglm(zaL_errorOra, &ivL_longCadn, &ivL_longMens);
+   printf("Error encontrado : %s \n", zpA_cadError);
+   printf("Error de Oracle  : %s \n", zaL_errorOra);
+   ivG_errorCon = -1;
+}//sqlError
+
+int conectando_aBD(paramConexion *spA_paramCon)
+{
+   int   iRetValue = 0;
+   EXEC SQL BEGIN DECLARE SECTION;
+      char    zaO_usuario_[50];
+      char    zaO_password[50];
+      char    zaO_dbnameBD[50];
+   EXEC SQL END DECLARE SECTION;
+
+   strcpy(zaO_usuario_,   spA_paramCon->usuario_DB);
+   strcpy(zaO_password,   spA_paramCon->password_DB);
+   strcpy(zaO_dbnameBD,   spA_paramCon->name_DB);
+
+   EXEC SQL WHENEVER SQLERROR DO sqlError("Error conexion"); 
+   iRetValue = -1;
+   EXEC SQL CONNECT :zaO_usuario_ IDENTIFIED by :zaO_password AT BRANDONDB USING :zaO_dbnameBD;
+
+   return iRetValue;
+}//conectando_aBD
+
+void cierraConexion()
+{
+   EXEC SQL WHENEVER SQLERROR CONTINUE;
+   if ( !sqlca.sqlcode )
+   {
+      EXEC SQL AT BRANDONDB COMMIT WORK RELEASE;
+   }
+   else
+   {
+      EXEC SQL AT BRANDONDB ROLLBACK RELEASE;
+   }
+}//cierraConexion
+
+int psvrinit(int argc, char *argv[]){
+    int iRetValue = 0;
+    paramConexion svL_paramCon;
+
+    userlog ("Iniciando srvTuxedoBD01D");
+    return(iRetValue);
+}
+
+
+void insert_Negocio_FML(TPSVCINFO *rqst){
+    FLDLEN32 flen;
+    paramConexion svL_paramCon;
+    char msgbuf[256];
+
+    EXEC SQL BEGIN DECLARE SECTION;
+    int t_idDir;
+    char t_nombreDir[20];
+    char t_nacionalidad[20];
+    char t_estudioDir[20];
+    EXEC SQL END DECLARE SECTION;
+
+    FBFR32* fbfr = (FBFR32*)rqst->data;
+    strcpy(svL_paramCon.usuario_DB, "system");
+    strcpy(svL_paramCon.password_DB, "Brand1739");
+    strcpy(svL_paramCon.name_DB, "BRANDONDB");
+
+    memset(&t_idDir, 0x00, sizeof(t_idDir));
+    memset(t_nombreDir, 0x00, sizeof(t_nombreDir));
+    memset(t_nacionalidad, 0x00, sizeof(t_nacionalidad));
+    memset(t_estudioDir, 0x00, sizeof(t_estudioDir));
+
+    userlog ("Servicio insert_Negocio_FML Invocado");
+
+    if(Fget32 (fbfr, IDDIR, 0, (char*)&t_idDir, 0) < 0){
+        userlog ("Error Fget32(CODIGO): %s", Fstrerror32(Ferror32));
+        tpreturn (TPFAIL, 0, rqst->data, 0L, 0);
+    }
+
+    userlog (" IDDIR: [%d]", t_idDir);
+
+    if(Fget32 (fbfr, NOMBREDIR, 0, t_nombreDir, 0) < 0){
+        userlog ("Error Fget32(NOMBREDIR): %s", Fstrerror32(Ferror32));
+        tpreturn (TPFAIL, 0, rqst->data, 0L, 0);
+    }
+    userlog ("nombreDir : [%s]", t_nombreDir) ;
+
+    if(Fget32 (fbfr, NACIONALIDAD, 0, t_nacionalidad, 0) < 0){
+        userlog ("Error Fget32(NACIONALIDAD): %s", Fstrerror32(Ferror32));
+        tpreturn (TPFAIL, 0, rqst->data, 0L, 0);
+    }
+    userlog (" nacionalidad: [%s]", t_nacionalidad);
+
+    if(Fget32 (fbfr, ESTUDIODIR, 0, t_estudioDir, 0) < 0){
+        userlog ("Error Fget32(ESTUDIODIR): %s", Fstrerror32(Ferror32));
+        tpreturn (TPFAIL, 0, rqst->data, 0L, 0);
+    }
+    userlog (" estudioDir : [%s]", t_estudioDir);
+
+    userlog ("Conectando a la BD");
+    conectando_aBD(&svL_paramCon);
+
+    EXEC SQL AT BRANDONDB
+    INSERT INTO Directores (idDir, nombreDir, nacionalidad, estudioDir)
+    VALUES (:t_idDir, :t_nombreDir, :t_nacionalidad, :t_estudioDir);
+
+    if(sqlca.sqlcode != 0){
+      sprintf(msgbuf, "Fallo insert: sqlcode = %d(%s)\n",
+                     sqlca.sqlcode, sqlca.sqlerrm.sqlerrmc);
+      sqlError("Error al realizar Insert");
+      Fchg32(fbfr, OUTPUT, 0, msgbuf, 0);
+      cierraConexion();
+      tpreturn(TPFAIL, 0, rqst->data, 0L, 0);
+   }
+
+   strcpy(msgbuf, "Insert exitoso!");
+   userlog ("Insert exitoso");
+   Fchg32(fbfr, OUTPUT, 0, msgbuf, 0);
+   cierraConexion();
+   tpreturn(TPSUCCESS, 0, rqst->data, strlen(rqst->data), 0);
+}
+
+void select_Negocio_FML(TPSVCINFO *rqst){
+    FLDLEN32       flen;
+    paramConexion  svL_paramCon;
+    char           msgbuf[256];
+
+    EXEC SQL BEGIN DECLARE SECTION;
+	    int t_idPeli;
+	    char t_nombrePeli[20];
+	    char t_generoPeli[20];
+	    char t_directorPeli[20];
+    EXEC SQL END DECLARE SECTION;
+
+    FBFR32* fbfr = (FBFR32*)rqst->data;
+
+    strcpy(svL_paramCon.usuario_DB, "system");
+    strcpy(svL_paramCon.password_DB, "Brand1739");
+    strcpy(svL_paramCon.name_DB, "BRANDONDB");
+    t_idPeli = 0;
+    memset(t_nombrePeli, 0x00, sizeof(t_nombrePeli));
+    memset(t_generoPeli, 0x00, sizeof(t_generoPeli));
+    memset(t_directorPeli, 0x00, sizeof(t_directorPeli));
+
+    userlog ("Servicio select_Negocio_FML Invocado");
+
+    /* Obtenemos los campos FML del buffer de entrada */
+   if(Fget32 (fbfr, NOMBREPELI, 0, t_nombrePeli, 0) < 0) {
+      userlog ("Error Fget32(NOMBREPELI): %s", Fstrerror32(Ferror32)) ;
+      tpreturn (TPFAIL, 0, rqst->data, 0L,0);
+   }
+   userlog ("Buscar pelicula: [%s]", t_nombrePeli);
+   
+
+   Finit32 (fbfr, Fsizeof32 (fbfr));
+
+   userlog ("Conectando a la BD");
+   conectando_aBD(&svL_paramCon);
+
+   /* Declaramos y Abrimos Cursor */
+   EXEC SQL AT BRANDONDB DECLARE cu_bibAutor CURSOR FOR
+      SELECT idPeli, nombrePeli, generoPeli, directorPeli
+      FROM Pelicula
+      WHERE nombrePeli = :t_nombrePeli;
+   if(sqlca.sqlcode != 0) {
+      userlog ("Error Declare Cursor: %d-%s", 
+        	sqlca.sqlcode, sqlca.sqlerrm.sqlerrmc) ;
+      tpreturn (TPFAIL, 0, rqst->data, 0L, 0) ;
+   }
+
+   EXEC SQL AT BRANDONDB OPEN cu_bibAutor;
+   if(sqlca.sqlcode != 0) {
+     userlog ("Error Open Cursor: %d-%s", 
+            sqlca.sqlcode, sqlca.sqlerrm.sqlerrmc);
+      tpreturn (TPFAIL, 0, rqst->data, 0L, 0);
+   }
+
+   EXEC SQL AT BRANDONDB FETCH cu_bibAutor
+   INTO :t_idPeli, :t_nombrePeli, :t_generoPeli, :t_directorPeli;
+
+   while (sqlca.sqlcode == 0) {
+      Fadd32 (fbfr, IDPELI, (char *) &t_idPeli, 0);
+      userlog (" Id de pelicula: [%d]", t_idPeli);
+      Fadd32 (fbfr, NOMBREPELI, ajustaCampos(t_nombrePeli), 0);
+      userlog (" nombrePeli : [%s]", ajustaCampos(t_nombrePeli));
+      Fadd32 (fbfr, GENEROPELI, ajustaCampos( t_generoPeli), 0);
+      userlog (" GENEROPELI: [%s]", ajustaCampos(t_generoPeli));
+      Fadd32 (fbfr, DIRECTORPELI, ajustaCampos(t_directorPeli), 0) ;
+      userlog (" DIRECTORPELI : [%s]", ajustaCampos(t_directorPeli)) ;
+		
+      EXEC SQL AT BRANDONDB FETCH cu_bibAutor 
+      INTO :t_idPeli, :t_nombrePeli, :t_generoPeli, :t_directorPeli;
+   }
+
+   EXEC SQL CLOSE cu_bibAutor;
+
+   strcpy(msgbuf, "Select exitoso!");
+   userlog ("Select exitoso");
+   Fchg32(fbfr, OUTPUT, 0, msgbuf, 0);
+   cierraConexion();
+   tpreturn(TPSUCCESS, 0,(char *)fbfr, sizeof(fbfr), 0);
+}
+
+void update_Negocio_FML(TPSVCINFO *rqst)
+{
+   FLDLEN32 flen;
+   paramConexion svL_paramCon;
+   char msgbuf[256];
+
+   EXEC SQL BEGIN DECLARE SECTION;
+   int t_idAct;
+   char t_estudioAct[20];
+   EXEC SQL END DECLARE SECTION;
+   
+   FBFR32* fbfr = (FBFR32*)rqst->data;
+   strcpy(svL_paramCon.usuario_DB, "system");
+   strcpy(svL_paramCon.password_DB, "Brand1739");
+   strcpy(svL_paramCon.name_DB, "BRANDONDB");
+
+   memset(&t_idAct, 0x00, sizeof(t_idAct));
+   memset(t_estudioAct, 0x00, sizeof(t_estudioAct));
+
+   userlog("Servicio update_Negocio_FML Invocado");
+
+   if (Fget32(fbfr, IDACT, 0, (char*)&t_idAct, 0) < 0)
+   {
+      userlog("Error Fget32(IDACT): %s", Fstrerror32(Ferror32));
+      tpreturn(TPFAIL, 0, rqst->data, 0L, 0);
+   }
+
+   userlog("ID de habitación: [%d]", t_idAct);
+
+   if (Fget32(fbfr, ESTUDIOACT, 0, t_estudioAct, 0) < 0)
+   {
+      userlog("Error Fget32(ESTUDIOACT): %s", Fstrerror32(Ferror32));
+      tpreturn(TPFAIL, 0, rqst->data, 0L, 0);
+   }
+   userlog("estudioAct : [%s]", t_estudioAct);
+
+   userlog("Conectando a la BD");
+   conectando_aBD(&svL_paramCon);
+
+   EXEC SQL AT BRANDONDB
+   UPDATE Actores
+   SET estudioAct = :t_estudioAct
+   WHERE idAct = :t_idAct;
+
+   userlog("Update hecho");
+
+   if (sqlca.sqlcode != 0)
+   {
+      userlog("Error SQL: %s", sqlca.sqlerrm.sqlerrmc);
+      sprintf(msgbuf, "Fallo update: sqlcode = %d(%s)\n",
+              sqlca.sqlcode, sqlca.sqlerrm.sqlerrmc);
+      sqlError("Error al realizar Update");
+      Fchg32(fbfr, OUTPUT, 0, msgbuf, 0);
+      cierraConexion();
+      tpreturn(TPFAIL, 0, rqst->data, 0L, 0);
+   }
+
+
+   strcpy(msgbuf, "Update exitoso!");
+   userlog ("Update exitoso");
+   Fchg32(fbfr, OUTPUT, 0, msgbuf, 0);
+   cierraConexion();
+   tpreturn(TPSUCCESS, 0,(char *)fbfr, sizeof(fbfr), 0);
+}
+
+void delete_Negocio_FML(TPSVCINFO *rqst)
+{
+   FLDLEN32 flen;
+   paramConexion svL_paramCon;
+   char msgbuf[256];
+
+   EXEC SQL BEGIN DECLARE SECTION;
+   int t_idEst;
+   EXEC SQL END DECLARE SECTION;
+   
+   FBFR32* fbfr = (FBFR32*)rqst->data;
+   strcpy(svL_paramCon.usuario_DB, "system");
+   strcpy(svL_paramCon.password_DB, "Brand1739");
+   strcpy(svL_paramCon.name_DB, "BRANDONDB");
+
+   memset(&t_idEst, 0x00, sizeof(t_idEst));
+
+   userlog("Servicio delete_Negocio_FML Invocado");
+
+   if (Fget32(fbfr, IDEST, 0, (char*)&t_idEst, 0) < 0)
+   {
+      userlog("Error Fget32(IDEST): %s", Fstrerror32(Ferror32));
+      tpreturn(TPFAIL, 0, rqst->data, 0L, 0);
+   }
+
+   userlog("ID de Estudio: [%d]", t_idEst);
+
+   userlog("Conectando a la BD");
+   conectando_aBD(&svL_paramCon);
+
+   EXEC SQL AT BRANDONDB
+   DELETE FROM Estudios
+   WHERE idEst = :t_idEst;
+
+   userlog("DELETE hecho");
+
+   if (sqlca.sqlcode != 0)
+   {
+      userlog("Error SQL: %s", sqlca.sqlerrm.sqlerrmc);
+      sprintf(msgbuf, "Fallo update: sqlcode = %d(%s)\n",
+              sqlca.sqlcode, sqlca.sqlerrm.sqlerrmc);
+      sqlError("Error al realizar delete");
+      Fchg32(fbfr, OUTPUT, 0, msgbuf, 0);
+      cierraConexion();
+      tpreturn(TPFAIL, 0, rqst->data, 0L, 0);
+   }
+
+   strcpy(msgbuf, "Delete exitoso!");
+   userlog ("Delete exitoso");
+   Fchg32(fbfr, OUTPUT, 0, msgbuf, 0);
+   cierraConexion();
+   tpreturn(TPSUCCESS, 0,(char *)fbfr, sizeof(fbfr), 0);
+}
+
+char *ajustaCampos(char zaA_Campo[2000])
+{
+   int   ivL_obtenTam;
+   int   ivL_contIter;
+   int   ivL_siEspacs;
+   int   ivL_noEspacs;
+
+   ivL_obtenTam   = strlen(zaA_Campo);
+   ivL_contIter   = 0;
+   ivL_siEspacs   = 0;
+   ivL_noEspacs   = 0;
+
+   for(ivL_contIter = 0; ivL_contIter < ivL_obtenTam && zaA_Campo[ivL_contIter] == ' '; ivL_contIter++)
+   {
+      ivL_siEspacs++;
+   }
+
+   if(ivL_siEspacs == ivL_obtenTam)
+   {
+      return (char *)"\0";
+   }
+   else
+   {
+      if(ivL_siEspacs < ivL_obtenTam)
+      {
+         for(ivL_contIter = ivL_obtenTam - 1; ivL_contIter >= 0 && zaA_Campo[ivL_contIter] == ' '; ivL_contIter--)
+         {
+            ivL_noEspacs++;
+         }
+         zaA_Campo[ivL_obtenTam - ivL_noEspacs] = '\0';
+         return (char *) zaA_Campo;
+      }
+   }
+}//ajustaCampos
+
